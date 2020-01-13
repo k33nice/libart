@@ -4,10 +4,6 @@
 
 package art
 
-import (
-	"bytes"
-)
-
 type tree struct {
 	root *artNode
 	size int64
@@ -19,7 +15,6 @@ func newArt() *tree {
 
 // Returns the node that contains the passed in key, or nil if not found.
 func (t *tree) Search(key Key) Value {
-	key = ensureNullTerminatedKey(key)
 	return t.searchHelper(t.root, key, 0)
 }
 
@@ -28,7 +23,6 @@ func (t *tree) Search(key Key) Value {
 func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{} {
 	// While we have nodes to search
 	for current != nil {
-
 		// Check if the current is a match
 		if current.IsLeaf() {
 			if current.IsMatch(key) {
@@ -48,7 +42,13 @@ func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{}
 		depth += current.node().prefixLen
 
 		// Find the next node at the specified index, and update depth.
-		current = *(current.FindChild(key[depth]))
+		var keyChar byte
+		if depth < 0 || depth >= len(key) {
+			keyChar = byte(0)
+		} else {
+			keyChar = key[depth]
+		}
+		current = *(current.FindChild(keyChar))
 		depth++
 	}
 
@@ -57,8 +57,7 @@ func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{}
 
 // Inserts the passed in value that is indexed by the passed in key into the ArtTree.
 func (t *tree) Insert(key Key, value Value) {
-	key = ensureNullTerminatedKey(key)
-	t.insertHelper(t.root, &t.root, key, value, 0)
+	t.insertHelper(&t.root, key, value, 0)
 }
 
 // Recursive helper function that traverses the tree until an insertion point is found.
@@ -76,15 +75,16 @@ func (t *tree) Insert(key Key, value Value) {
 //
 // If there is no child at the specified key at the current depth of traversal, a new leaf node
 // is created and inserted at this position.
-func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, value interface{}, depth int) {
+func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{}, depth int) {
 	// @spec: Usually, the leaf can
 	//        simply be inserted into an existing inner node, after growing
 	//        it if necessary.
-	if current == nil {
+	if *currentRef == nil {
 		*currentRef = newLeafNode(key, value)
 		t.size++
 		return
 	}
+	current := *currentRef
 
 	// @spec: If, because of lazy expansion,
 	//        an existing leaf is encountered, it is replaced by a new
@@ -106,13 +106,22 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 
 		newNode4.node().prefixLen = limit
 
-		memcpy(newNode4.node().prefix[:], key[depth:], min(newNode4.node().prefixLen, MAX_PREFIX_LEN))
+		memcpy(newNode4.node().prefix[:], key[depth:], min(newNode4.node().prefixLen, maxPrefixLen))
 
 		*currentRef = newNode4
 
 		// Add both children to the new Inner Node
-		newNode4.AddChild(current.leaf().key[depth+newNode4.node().prefixLen], current)
-		newNode4.AddChild(key[depth+newNode4.node().prefixLen], newLeafNode)
+		if depth+newNode4.node().prefixLen < 0 || depth+newNode4.node().prefixLen >= len(current.leaf().key) {
+			newNode4.AddChild(0, current)
+		} else {
+			newNode4.AddChild(current.leaf().key[depth+newNode4.node().prefixLen], current)
+		}
+
+		if depth+newNode4.node().prefixLen < 0 || depth+newNode4.node().prefixLen >= len(key) {
+			newNode4.AddChild(0, newLeafNode)
+		} else {
+			newNode4.AddChild(key[depth+newNode4.node().prefixLen], newLeafNode)
+		}
 
 		t.size++
 		return
@@ -121,12 +130,13 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 	// @spec: Another special case occurs if the key of the new leaf
 	//        differs from a compressed path: A new inner node is created
 	//        above the current node and the compressed paths are adjusted accordingly.
-	if current.node().prefixLen != 0 {
+	node := current.node()
+	if node.prefixLen != 0 {
 
 		mismatch := current.PrefixMismatch(key, depth)
 
 		// If the key differs from the compressed path
-		if mismatch != current.node().prefixLen {
+		if mismatch != node.prefixLen {
 
 			// Create a new Inner Node that will contain the current node
 			// and the desired insertion key
@@ -135,18 +145,18 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 			newNode4.node().prefixLen = mismatch
 
 			// Copy the mismatched prefix into the new inner node.
-			memcpy(newNode4.node().prefix[:], current.node().prefix[:], mismatch)
+			memcpy(newNode4.node().prefix[:], node.prefix[:], mismatch)
 
 			// Adjust prefixes so they fit underneath the new inner node
-			if current.node().prefixLen < MAX_PREFIX_LEN {
-				newNode4.AddChild(current.node().prefix[mismatch], current)
-				current.node().prefixLen -= (mismatch + 1)
-				memmove(current.node().prefix[:], current.node().prefix[mismatch+1:], min(current.node().prefixLen, MAX_PREFIX_LEN))
+			if node.prefixLen < maxPrefixLen {
+				newNode4.AddChild(node.prefix[mismatch], current)
+				node.prefixLen -= (mismatch + 1)
+				memmove(node.prefix[:], node.prefix[mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			} else {
-				current.node().prefixLen -= (mismatch + 1)
+				node.prefixLen -= (mismatch + 1)
 				minKey := current.Minimum().leaf().key
 				newNode4.AddChild(minKey[depth+mismatch], current)
-				memmove(current.node().prefix[:], minKey[depth+mismatch+1:], min(current.node().prefixLen, MAX_PREFIX_LEN))
+				memmove(node.prefix[:], minKey[depth+mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			}
 
 			// Attach the desired insertion key
@@ -157,7 +167,7 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 			return
 		}
 
-		depth += current.node().prefixLen
+		depth += node.prefixLen
 	}
 
 	// Find the next child
@@ -165,10 +175,8 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 
 	// If we found a child that matches the key at the current depth
 	if *next != nil {
-
 		// Recurse, and keep looking for an insertion point
-		t.insertHelper(*next, next, key, value, depth+1)
-
+		t.insertHelper(next, key, value, depth+1)
 	} else {
 		// Otherwise, Add the child at the current position.
 		current.AddChild(key[depth], newLeafNode(key, value))
@@ -178,7 +186,6 @@ func (t *tree) insertHelper(current *artNode, currentRef **artNode, key []byte, 
 
 // Delete the child that is accessed by the passed in key.
 func (t *tree) Delete(key []byte) bool {
-	key = ensureNullTerminatedKey(key)
 	return t.removeHelper(&t.root, key, 0)
 }
 
@@ -219,11 +226,17 @@ func (t *tree) removeHelper(currentRef **artNode, key []byte, depth int) bool {
 	}
 
 	// Find the next child
-	next := current.FindChild(key[depth])
+	var keyChar byte
+	if depth < 0 || depth >= len(key) {
+		keyChar = byte(0)
+	} else {
+		keyChar = key[depth]
+	}
+	next := current.FindChild(keyChar)
 
 	// Let the Inner Node handle the removal logic if the child is a match
 	if *next != nil && (*next).IsLeaf() && (*next).IsMatch(key) {
-		current.RemoveChild(key[depth])
+		current.RemoveChild(keyChar)
 		t.size--
 		return true
 	}
@@ -302,20 +315,4 @@ func memmove(dest []byte, src []byte, numBytes int) {
 	for i := 0; i < numBytes; i++ {
 		dest[i] = src[i]
 	}
-}
-
-// Returns the passed in key as a null terminated byte array
-// if it is not already null terminated.
-func ensureNullTerminatedKey(key []byte) []byte {
-	index := bytes.Index(key, []byte{0})
-
-	// Is there a null terminated character?
-	if index < 0 {
-
-		// Append one.
-		key = append(key, byte(0))
-
-	}
-
-	return key
 }

@@ -27,13 +27,13 @@ const (
 	node256Min = 49
 	node256Max = 256
 
-	MAX_PREFIX_LEN = 10
+	maxPrefixLen = 10
 )
 
 type node struct {
 	size      int
 	prefixLen int
-	prefix    [MAX_PREFIX_LEN]byte
+	prefix    [maxPrefixLen]byte
 }
 
 type node4 struct {
@@ -170,9 +170,15 @@ func (n *artNode) IsMatch(key []byte) bool {
 func (n *artNode) PrefixMismatch(key []byte, depth int) int {
 	index := 0
 
-	if n.node().prefixLen > MAX_PREFIX_LEN {
-		for ; index < MAX_PREFIX_LEN; index++ {
-			if key[depth+index] != n.node().prefix[index] {
+	if n.node().prefixLen > maxPrefixLen {
+		var keyChar byte
+		for ; index < maxPrefixLen; index++ {
+			if depth+index < 0 || depth+index >= len(key) {
+				keyChar = byte(0)
+			} else {
+				keyChar = key[depth+index]
+			}
+			if keyChar != n.node().prefix[index] {
 				return index
 			}
 		}
@@ -187,8 +193,14 @@ func (n *artNode) PrefixMismatch(key []byte, depth int) int {
 
 	} else {
 
+		var keyChar byte
 		for ; index < n.node().prefixLen; index++ {
-			if key[depth+index] != n.node().prefix[index] {
+			if depth+index < 0 || depth+index >= len(key) {
+				keyChar = byte(0)
+			} else {
+				keyChar = key[depth+index]
+			}
+			if keyChar != n.node().prefix[index] {
 				return index
 			}
 		}
@@ -205,10 +217,9 @@ func (n *artNode) Index(key byte) int {
 		node := n.node4()
 		for i := 0; i < node.size; i++ {
 			if node.keys[i] == key {
-				return int(i)
+				return i
 			}
 		}
-		return -1
 	case Node16:
 		return bytes.IndexByte(n.node16().keys[:], key)
 
@@ -220,10 +231,9 @@ func (n *artNode) Index(key byte) int {
 		// during insertion and decrease it during retrieval.
 		index := int(n.node48().keys[key])
 		if index > 0 {
-			return int(index) - 1
+			return index - 1
 		}
 
-		return -1
 	case Node256:
 		// artNodes of type Node256 possibly have the simplest lookup algorithm.
 		// Since all of their keys are byte-addressable, we can simply index to the specific child with the key.
@@ -233,11 +243,12 @@ func (n *artNode) Index(key byte) int {
 	return -1
 }
 
+// Define nullNode only once, thus do not make redundant allocations
+var nullNode *artNode
+
 // FindChild returns a pointer to the child that matches the passed in key,
 // or nil if not present.
 func (n *artNode) FindChild(key byte) **artNode {
-	var nullNode *artNode = nil
-
 	if n == nil {
 		return &nullNode
 	}
@@ -505,18 +516,18 @@ func (n *artNode) shrink() {
 		if !other.IsLeaf() {
 			currentPrefixLen := n4.prefixLen
 
-			if currentPrefixLen < MAX_PREFIX_LEN {
+			if currentPrefixLen < maxPrefixLen {
 				n4.prefix[currentPrefixLen] = n4.keys[0]
 				currentPrefixLen++
 			}
 
-			if currentPrefixLen < MAX_PREFIX_LEN {
-				childPrefixLen := min(other.node().prefixLen, MAX_PREFIX_LEN-currentPrefixLen)
+			if currentPrefixLen < maxPrefixLen {
+				childPrefixLen := min(other.node().prefixLen, maxPrefixLen-currentPrefixLen)
 				memcpy(n4.prefix[currentPrefixLen:], other.node().prefix[:], childPrefixLen)
 				currentPrefixLen += childPrefixLen
 			}
 
-			memcpy(other.node().prefix[:], n4.prefix[:], min(currentPrefixLen, MAX_PREFIX_LEN))
+			memcpy(other.node().prefix[:], n4.prefix[:], min(currentPrefixLen, maxPrefixLen))
 			other.node().prefixLen += n4.prefixLen + 1
 		}
 
@@ -743,7 +754,7 @@ func (n *artNode) copyMeta(src *artNode) {
 	to.size = from.size
 	to.prefixLen = from.prefixLen
 
-	for i, limit := 0, min(from.prefixLen, MAX_PREFIX_LEN); i < limit; i++ {
+	for i, limit := 0, min(from.prefixLen, maxPrefixLen); i < limit; i++ {
 		to.prefix[i] = from.prefix[i]
 	}
 }

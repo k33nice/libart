@@ -353,10 +353,10 @@ func TestEachPreOrderness(t *testing.T) {
 	assert.Equal(t, traversal[0], tree.root)
 	assert.Equal(t, Node4, traversal[0].Kind())
 
-	assert.Equal(t, traversal[1].Key(), append(Key("1"), 0))
+	assert.Equal(t, traversal[1].Key(), Key("1"))
 	assert.Equal(t, Leaf, traversal[1].Kind())
 
-	assert.Equal(t, traversal[2].Key(), append(Key("2"), 0))
+	assert.Equal(t, traversal[2].Key(), Key("2"))
 	assert.Equal(t, Leaf, traversal[2].Kind())
 }
 
@@ -382,7 +382,7 @@ func TestEachNode48(t *testing.T) {
 	assert.Equal(t, Node48, traversal[0].Kind())
 
 	for i := 1; i < 48; i++ {
-		assert.Equal(t, traversal[i].Key(), append(Key{byte(i)}, 0))
+		assert.Equal(t, traversal[i].Key(), Key{byte(i)})
 		assert.Equal(t, Leaf, traversal[i].Kind())
 	}
 }
