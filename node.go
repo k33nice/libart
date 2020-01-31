@@ -283,9 +283,9 @@ func (n *artNode) findChild(key byte) **artNode {
 	return &nullNode
 }
 
-// AddChild adds the passed in node to the current artNode's children at the specified key.
+// addChild adds the passed in node to the current artNode's children at the specified key.
 // The current node will grow if necessary in order for the insertion to take place.
-func (n *artNode) AddChild(key byte, node *artNode) {
+func (n *artNode) addChild(key byte, node *artNode) {
 	switch n.kind {
 	case Node4:
 		n4 := n.node4()
@@ -310,7 +310,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 			nn.size++
 		} else {
 			n.grow()
-			n.AddChild(key, node)
+			n.addChild(key, node)
 		}
 
 	case Node16:
@@ -332,7 +332,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 			n16.size++
 		} else {
 			n.grow()
-			n.AddChild(key, node)
+			n.addChild(key, node)
 		}
 
 	case Node48:
@@ -350,7 +350,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 			nn.size++
 		} else {
 			n.grow()
-			n.AddChild(key, node)
+			n.addChild(key, node)
 		}
 
 	case Node256:

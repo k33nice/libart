@@ -112,15 +112,15 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 
 		// Add both children to the new Inner Node
 		if depth+newNode4.node().prefixLen < 0 || depth+newNode4.node().prefixLen >= len(current.leaf().key) {
-			newNode4.AddChild(0, current)
+			newNode4.addChild(0, current)
 		} else {
-			newNode4.AddChild(current.leaf().key[depth+newNode4.node().prefixLen], current)
+			newNode4.addChild(current.leaf().key[depth+newNode4.node().prefixLen], current)
 		}
 
 		if depth+newNode4.node().prefixLen < 0 || depth+newNode4.node().prefixLen >= len(key) {
-			newNode4.AddChild(0, newLeafNode)
+			newNode4.addChild(0, newLeafNode)
 		} else {
-			newNode4.AddChild(key[depth+newNode4.node().prefixLen], newLeafNode)
+			newNode4.addChild(key[depth+newNode4.node().prefixLen], newLeafNode)
 		}
 
 		t.size++
@@ -149,19 +149,19 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 
 			// Adjust prefixes so they fit underneath the new inner node
 			if node.prefixLen < maxPrefixLen {
-				newNode4.AddChild(node.prefix[mismatch], current)
+				newNode4.addChild(node.prefix[mismatch], current)
 				node.prefixLen -= (mismatch + 1)
 				memmove(node.prefix[:], node.prefix[mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			} else {
 				node.prefixLen -= (mismatch + 1)
 				minKey := current.minimum().leaf().key
-				newNode4.AddChild(minKey[depth+mismatch], current)
+				newNode4.addChild(minKey[depth+mismatch], current)
 				memmove(node.prefix[:], minKey[depth+mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			}
 
 			// Attach the desired insertion key
 			newLeafNode := newLeafNode(key, value)
-			newNode4.AddChild(key[depth+mismatch], newLeafNode)
+			newNode4.addChild(key[depth+mismatch], newLeafNode)
 
 			t.size++
 			return
@@ -179,7 +179,7 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 		t.insertHelper(next, key, value, depth+1)
 	} else {
 		// Otherwise, Add the child at the current position.
-		current.AddChild(key[depth], newLeafNode(key, value))
+		current.addChild(key[depth], newLeafNode(key, value))
 		t.size++
 	}
 }

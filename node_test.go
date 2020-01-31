@@ -34,7 +34,7 @@ func TestAddChildAndFindChildForAllNodeTypes(t *testing.T) {
 		// Fill it up
 		for i := 0; i < n.maxSize(); i++ {
 			newChild := newLeafNode([]byte{byte(i)}, byte(i))
-			n.AddChild(byte(i), newChild)
+			n.addChild(byte(i), newChild)
 		}
 
 		// Expect to find all children for that paticular type of node
@@ -63,7 +63,7 @@ func TestIndexForAllNodeTypes(t *testing.T) {
 		// Fill it up
 		for i := 0; i < n.maxSize(); i++ {
 			newChild := newLeafNode([]byte{byte(i)}, byte(i))
-			n.AddChild(byte(i), newChild)
+			n.addChild(byte(i), newChild)
 		}
 
 		for i := 0; i < n.maxSize(); i++ {
@@ -78,7 +78,7 @@ func TestIndexForAllNodeTypes(t *testing.T) {
 func TestArtNode4AddChild1AndFindChild(t *testing.T) {
 	n := newNode4()
 	n2 := newNode4()
-	n.AddChild('a', n2)
+	n.addChild('a', n2)
 
 	assert.Equal(t, 1, n.node().size)
 
@@ -92,8 +92,8 @@ func TestArtNode4AddChildTwicePreserveSorted(t *testing.T) {
 	n := newNode4()
 	n2 := newNode4()
 	n3 := newNode4()
-	n.AddChild('b', n2)
-	n.AddChild('a', n3)
+	n.addChild('b', n2)
+	n.addChild('a', n3)
 
 	if n.node().size < 2 {
 		t.Error("Size is incorrect after adding one child to empty Node4")
@@ -114,7 +114,7 @@ func TestArtNode4AddChild4PreserveSorted(t *testing.T) {
 	n := newNode4()
 
 	for i := 4; i > 0; i-- {
-		n.AddChild(byte(i), newNode4())
+		n.addChild(byte(i), newNode4())
 	}
 
 	if n.node4().size < 4 {
@@ -154,11 +154,11 @@ func TestShrink(t *testing.T) {
 
 		for j := 0; j < node.minSize(); j++ {
 			if node.kind != Node4 {
-				node.AddChild(byte(i), newNode4())
+				node.addChild(byte(i), newNode4())
 			} else {
 				// We want to test that the Node4 reduces itself to
 				// A Leaf if its only child is a leaf
-				node.AddChild(byte(i), newLeafNode(nil, nil))
+				node.addChild(byte(i), newLeafNode(nil, nil))
 			}
 		}
 
