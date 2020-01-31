@@ -24,8 +24,8 @@ func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{}
 	// While we have nodes to search
 	for current != nil {
 		// Check if the current is a match
-		if current.IsLeaf() {
-			if current.IsMatch(key) {
+		if current.isLeaf() {
+			if current.isMatch(key) {
 				return current.leaf().value
 			}
 
@@ -34,7 +34,7 @@ func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{}
 		}
 
 		// Check if our key mismatches the current compressed path
-		if current.PrefixMismatch(key, depth) != current.node().prefixLen {
+		if current.prefixMismatch(key, depth) != current.node().prefixLen {
 			// Bail if there's a mismatch during traversal.
 			return nil
 		}
@@ -48,7 +48,7 @@ func (t *tree) searchHelper(current *artNode, key []byte, depth int) interface{}
 		} else {
 			keyChar = key[depth]
 		}
-		current = *(current.FindChild(keyChar))
+		current = *(current.findChild(keyChar))
 		depth++
 	}
 
@@ -89,11 +89,11 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 	// @spec: If, because of lazy expansion,
 	//        an existing leaf is encountered, it is replaced by a new
 	//        inner node storing the existing and the new leaf
-	if current.IsLeaf() {
+	if current.isLeaf() {
 
 		// TODO Determine if we should overwrite keys if they are attempted to overwritten.
 		//      Currently, we bail if the key matches.
-		if current.IsMatch(key) {
+		if current.isMatch(key) {
 			return
 		}
 
@@ -102,7 +102,7 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 		newLeafNode := newLeafNode(key, value)
 
 		// Determine the longest common prefix between our current node and the key
-		limit := current.LongestCommonPrefix(newLeafNode, depth)
+		limit := current.longestCommonPrefix(newLeafNode, depth)
 
 		newNode4.node().prefixLen = limit
 
@@ -133,7 +133,7 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 	node := current.node()
 	if node.prefixLen != 0 {
 
-		mismatch := current.PrefixMismatch(key, depth)
+		mismatch := current.prefixMismatch(key, depth)
 
 		// If the key differs from the compressed path
 		if mismatch != node.prefixLen {
@@ -154,7 +154,7 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 				memmove(node.prefix[:], node.prefix[mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			} else {
 				node.prefixLen -= (mismatch + 1)
-				minKey := current.Minimum().leaf().key
+				minKey := current.minimum().leaf().key
 				newNode4.AddChild(minKey[depth+mismatch], current)
 				memmove(node.prefix[:], minKey[depth+mismatch+1:], min(node.prefixLen, maxPrefixLen))
 			}
@@ -171,7 +171,7 @@ func (t *tree) insertHelper(currentRef **artNode, key []byte, value interface{},
 	}
 
 	// Find the next child
-	next := current.FindChild(key[depth])
+	next := current.findChild(key[depth])
 
 	// If we found a child that matches the key at the current depth
 	if *next != nil {
@@ -204,8 +204,8 @@ func (t *tree) removeHelper(currentRef **artNode, key []byte, depth int) bool {
 
 	current := *currentRef
 	// If the current node matches, remove it.
-	if current.IsLeaf() {
-		if current.IsMatch(key) {
+	if current.isLeaf() {
+		if current.isMatch(key) {
 			*currentRef = nil
 			t.size--
 			return true
@@ -216,7 +216,7 @@ func (t *tree) removeHelper(currentRef **artNode, key []byte, depth int) bool {
 	if current.node().prefixLen != 0 {
 
 		// Bail out if we encounter a mismatch
-		mismatch := current.PrefixMismatch(key, depth)
+		mismatch := current.prefixMismatch(key, depth)
 		if mismatch != current.node().prefixLen {
 			return false
 		}
@@ -232,10 +232,10 @@ func (t *tree) removeHelper(currentRef **artNode, key []byte, depth int) bool {
 	} else {
 		keyChar = key[depth]
 	}
-	next := current.FindChild(keyChar)
+	next := current.findChild(keyChar)
 
 	// Let the Inner Node handle the removal logic if the child is a match
-	if *next != nil && (*next).IsLeaf() && (*next).IsMatch(key) {
+	if *next != nil && (*next).isLeaf() && (*next).isMatch(key) {
 		current.RemoveChild(keyChar)
 		t.size--
 		return true

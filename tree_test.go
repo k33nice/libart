@@ -11,7 +11,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/k33nice/art/internal/test"
+	"github.com/k33nice/libart/internal/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -126,10 +126,10 @@ func TestInsertManyWordsAndEnsureSearchResultAndMinimumMaximum(t *testing.T) {
 		assert.Equal(t, w, res)
 	}
 
-	minimum := tree.root.Minimum()
+	minimum := tree.root.minimum()
 	assert.Equal(t, []byte("A"), minimum.Value().([]byte))
 
-	maximum := tree.root.Maximum()
+	maximum := tree.root.maximum()
 	assert.Equal(t, []byte("zythum"), maximum.Value().([]byte))
 }
 
@@ -151,11 +151,11 @@ func TestInsertManyUUIDsAndEnsureSearchAndMinimumMaximum(t *testing.T) {
 		assert.Equal(t, res, uuid)
 	}
 
-	minimum := tree.root.Minimum()
+	minimum := tree.root.minimum()
 	assert.NotNil(t, minimum.Value())
 	assert.Equal(t, []byte("00005076-6244-4739-808b-a58512fd6642"), minimum.Value().([]byte))
 
-	maximum := tree.root.Maximum()
+	maximum := tree.root.maximum()
 	assert.NotNil(t, maximum.Value())
 	assert.Equal(t, []byte("ffffb7f1-20de-4a46-a3ec-8c87d5c7fce0"), maximum.Value().([]byte))
 }
@@ -216,7 +216,7 @@ func TestInsert5AndRemove1AndRootShouldBeNode4(t *testing.T) {
 	}
 
 	tree.Delete(Key{1})
-	res := *(tree.root.FindChild(byte(1)))
+	res := *(tree.root.findChild(byte(1)))
 
 	assert.Nil(t, res)
 	assert.Equal(t, int64(4), tree.size)
@@ -239,7 +239,7 @@ func TestInsert5AndRemove5AndRootShouldBeNil(t *testing.T) {
 		tree.Delete(Key{byte(i)})
 	}
 
-	res := tree.root.FindChild(byte(1))
+	res := tree.root.findChild(byte(1))
 
 	// Must fail if only both res and *res are not nil
 	assert.Condition(t, func() bool {
@@ -261,7 +261,7 @@ func TestInsert17AndRemove1AndRootShouldBeNode16(t *testing.T) {
 	}
 
 	tree.Delete(Key{2})
-	res := *(tree.root.FindChild(byte(2)))
+	res := *(tree.root.findChild(byte(2)))
 
 	assert.Nil(t, res)
 	assert.Equal(t, int64(16), tree.size)
@@ -284,7 +284,7 @@ func TestInsert17AndRemove17AndRootShouldBeNil(t *testing.T) {
 		tree.Delete(Key{byte(i)})
 	}
 
-	res := tree.root.FindChild(byte(1))
+	res := tree.root.findChild(byte(1))
 
 	assert.Condition(t, func() bool {
 		return res == nil || *res == nil
@@ -305,7 +305,7 @@ func TestInsert49AndRemove1AndRootShouldBeNode48(t *testing.T) {
 	}
 
 	tree.Delete(Key{2})
-	res := *(tree.root.FindChild(byte(2)))
+	res := *(tree.root.findChild(byte(2)))
 	assert.Nil(t, res)
 
 	assert.Equal(t, int64(48), tree.size)
@@ -329,7 +329,7 @@ func TestInsert49AndRemove49AndRootShouldBeNil(t *testing.T) {
 		tree.Delete(Key{byte(i)})
 	}
 
-	res := tree.root.FindChild(byte(1))
+	res := tree.root.findChild(byte(1))
 	assert.Condition(t, func() bool {
 		return res == nil || *res == nil
 	})

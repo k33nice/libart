@@ -1,4 +1,4 @@
-module github.com/k33nice/art
+module github.com/k33nice/libart
 
 go 1.13
 

@@ -13,36 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// A Leaf Node should be able to correctly determine if it is a match or not
-func TestIsMatch(t *testing.T) {
-	leaf := newLeafNode([]byte("test"), "test")
-	if !leaf.IsMatch([]byte("test")) {
-		t.Error("Unexpected match for leaf node")
-	}
-
-	leaf2 := newLeafNode([]byte("test2"), "test2")
-	if leaf2.IsMatch([]byte("test")) {
-		t.Error("Unexpected match for leaf2 node")
-	}
-}
-
-// An artNode should be able to determine if it is a leaf or not
-func TestIsLeaf(t *testing.T) {
-	leaf := &artNode{kind: Leaf}
-
-	if !leaf.IsLeaf() {
-		t.Error("Unable to successfully classify leaf")
-	}
-
-	innerNodes := []*artNode{newNode4(), newNode16(), newNode48(), newNode256()}
-
-	for node := range innerNodes {
-		if innerNodes[node].IsLeaf() {
-			t.Error("Incorrectly classified inner node as leaf")
-		}
-	}
-}
-
 // A Leaf Node should be able to retreive its value
 func TestValue(t *testing.T) {
 	leaf := newLeafNode([]byte("foo"), "foo")
@@ -62,14 +32,14 @@ func TestAddChildAndFindChildForAllNodeTypes(t *testing.T) {
 		n := nodes[node]
 
 		// Fill it up
-		for i := 0; i < n.MaxSize(); i++ {
+		for i := 0; i < n.maxSize(); i++ {
 			newChild := newLeafNode([]byte{byte(i)}, byte(i))
 			n.AddChild(byte(i), newChild)
 		}
 
 		// Expect to find all children for that paticular type of node
-		for i := 0; i < n.MaxSize(); i++ {
-			x := *(n.FindChild(byte(i)))
+		for i := 0; i < n.maxSize(); i++ {
+			x := *(n.findChild(byte(i)))
 
 			if x == nil {
 				t.Error("Could not find child as expected")
@@ -91,13 +61,13 @@ func TestIndexForAllNodeTypes(t *testing.T) {
 		n := nodes[node]
 
 		// Fill it up
-		for i := 0; i < n.MaxSize(); i++ {
+		for i := 0; i < n.maxSize(); i++ {
 			newChild := newLeafNode([]byte{byte(i)}, byte(i))
 			n.AddChild(byte(i), newChild)
 		}
 
-		for i := 0; i < n.MaxSize(); i++ {
-			if n.Index(byte(i)) != i {
+		for i := 0; i < n.maxSize(); i++ {
+			if n.index(byte(i)) != i {
 				t.Error("Unexpected value for Index function")
 			}
 		}
@@ -112,7 +82,7 @@ func TestArtNode4AddChild1AndFindChild(t *testing.T) {
 
 	assert.Equal(t, 1, n.node().size)
 
-	x := *(n.FindChild('a'))
+	x := *(n.findChild('a'))
 	assert.Equal(t, n2, x)
 }
 
@@ -182,7 +152,7 @@ func TestShrink(t *testing.T) {
 	for i := range nodes {
 		node := nodes[i]
 
-		for j := 0; j < node.MinSize(); j++ {
+		for j := 0; j < node.minSize(); j++ {
 			if node.kind != Node4 {
 				node.AddChild(byte(i), newNode4())
 			} else {

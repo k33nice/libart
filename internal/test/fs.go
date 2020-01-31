@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// LoadTestFile - loading test file in a two dimetional slice of bytes
 func LoadTestFile(path string) [][]byte {
 	file, err := os.Open(path)
 	if err != nil {

@@ -92,7 +92,7 @@ func newNode4() *artNode {
 }
 
 // From the specification: This node type is used for storing between 5 and
-// 16 child pointers. Like the Node4, the keys and pointers
+// 16 child pointers. Like the node4, the keys and pointers
 // are stored in separate arrays at corresponding positions, but
 // both arrays have space for 16 entries. A key can be found
 // efﬁciently with binary search or, on modern hardware, with
@@ -124,7 +124,7 @@ func newNode256() *artNode {
 }
 
 func (n *artNode) Key() Key {
-	if n.IsLeaf() {
+	if n.isLeaf() {
 		return n.leaf().key
 	}
 	return nil
@@ -143,15 +143,15 @@ func (n *artNode) Kind() Kind {
 }
 
 // Returns whether or not this particular art node is full.
-func (n *artNode) IsFull() bool {
-	return n.node().size == n.MaxSize()
+func (n *artNode) isFull() bool {
+	return n.node().size == n.maxSize()
 }
 
 // Returns whether or not this particular art node is a leaf node.
-func (n *artNode) IsLeaf() bool { return n.kind == Leaf }
+func (n *artNode) isLeaf() bool { return n.kind == Leaf }
 
 // Returns whether or not the key stored in the leaf matches the passed in key.
-func (n *artNode) IsMatch(key []byte) bool {
+func (n *artNode) isMatch(key []byte) bool {
 
 	// Bail if user tries to compare  anything but a leaf node
 	if n.kind != Leaf {
@@ -167,7 +167,7 @@ func (n *artNode) IsMatch(key []byte) bool {
 
 // Returns the number of bytes that differ between the passed in key
 // and the compressed path of the current node at the specified depth.
-func (n *artNode) PrefixMismatch(key []byte, depth int) int {
+func (n *artNode) prefixMismatch(key []byte, depth int) int {
 	index := 0
 
 	if n.node().prefixLen > maxPrefixLen {
@@ -183,7 +183,7 @@ func (n *artNode) PrefixMismatch(key []byte, depth int) int {
 			}
 		}
 
-		minKey := n.Minimum().leaf().key
+		minKey := n.minimum().leaf().key
 
 		for ; index < n.node().prefixLen; index++ {
 			if key[depth+index] != minKey[depth+index] {
@@ -209,7 +209,7 @@ func (n *artNode) PrefixMismatch(key []byte, depth int) int {
 	return index
 }
 
-func (n *artNode) Index(key byte) int {
+func (n *artNode) index(key byte) int {
 	switch n.kind {
 	case Node4:
 		// artNodes of type Node4 have a relatively simple lookup algorithm since
@@ -248,7 +248,7 @@ var nullNode *artNode
 
 // FindChild returns a pointer to the child that matches the passed in key,
 // or nil if not present.
-func (n *artNode) FindChild(key byte) **artNode {
+func (n *artNode) findChild(key byte) **artNode {
 	if n == nil {
 		return &nullNode
 	}
@@ -256,7 +256,7 @@ func (n *artNode) FindChild(key byte) **artNode {
 	var idx int
 	switch n.kind {
 	case Node4, Node16, Node48:
-		idx = n.Index(key)
+		idx = n.index(key)
 		if idx < 0 {
 			return &nullNode
 		}
@@ -290,7 +290,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 	case Node4:
 		n4 := n.node4()
 		nn := n.node()
-		if nn.size < n.MaxSize() {
+		if nn.size < n.maxSize() {
 			index := 0
 			for ; index < nn.size; index++ {
 				if key < n4.keys[index] {
@@ -315,7 +315,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 
 	case Node16:
 		n16 := n.node16()
-		if n16.size < n.MaxSize() {
+		if n16.size < n.maxSize() {
 
 			index := sort.Search(n16.size, func(i int) bool {
 				return key <= n16.keys[byte(i)]
@@ -338,7 +338,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 	case Node48:
 		n48 := n.node48()
 		nn := n.node()
-		if nn.size < n.MaxSize() {
+		if nn.size < n.maxSize() {
 			index := 0
 
 			for n48.children[index] != nil {
@@ -354,7 +354,7 @@ func (n *artNode) AddChild(key byte, node *artNode) {
 		}
 
 	case Node256:
-		if !n.IsFull() {
+		if !n.isFull() {
 			n.node256().children[key] = node
 
 			n.node().size++
@@ -369,7 +369,7 @@ func (n *artNode) RemoveChild(key byte) {
 	case Node4:
 		node := n.node4()
 
-		idx := n.Index(key)
+		idx := n.index(key)
 
 		node.keys[idx] = 0
 		node.children[idx] = nil
@@ -389,7 +389,7 @@ func (n *artNode) RemoveChild(key byte) {
 	case Node16:
 		node := n.node16()
 
-		idx := n.Index(key)
+		idx := n.index(key)
 
 		node.keys[idx] = 0
 		node.children[idx] = nil
@@ -409,7 +409,7 @@ func (n *artNode) RemoveChild(key byte) {
 
 	case Node48:
 		node := n.node48()
-		idx := n.Index(key)
+		idx := n.index(key)
 
 		if idx >= 0 {
 			child := node.children[idx]
@@ -422,7 +422,7 @@ func (n *artNode) RemoveChild(key byte) {
 
 	case Node256:
 		node := n.node256()
-		idx := n.Index(key)
+		idx := n.index(key)
 
 		child := node.children[idx]
 		if child != nil {
@@ -432,7 +432,7 @@ func (n *artNode) RemoveChild(key byte) {
 
 	}
 
-	if n.node().size < n.MinSize() {
+	if n.node().size < n.minSize() {
 		n.shrink()
 	}
 }
@@ -485,7 +485,7 @@ func (n *artNode) grow() {
 		other256 := other.node256()
 		n48 := n.node48()
 		for i := 0; i < len(n48.keys); i++ {
-			child := *(n.FindChild(byte(i)))
+			child := *(n.findChild(byte(i)))
 			if child != nil {
 				other256.children[byte(i)] = child
 			}
@@ -513,7 +513,7 @@ func (n *artNode) shrink() {
 		n4 := n.node4()
 		other := n4.children[0]
 
-		if !other.IsLeaf() {
+		if !other.isLeaf() {
 			currentPrefixLen := n4.prefixLen
 
 			if currentPrefixLen < maxPrefixLen {
@@ -585,7 +585,7 @@ func (n *artNode) shrink() {
 
 // Returns the longest number of bytes that match between the current node's prefix
 // and the passed in node at the specified depth.
-func (n *artNode) LongestCommonPrefix(other *artNode, depth int) int {
+func (n *artNode) longestCommonPrefix(other *artNode, depth int) int {
 	limit := min(len(n.leaf().key), len(other.leaf().key)) - depth
 
 	i := 0
@@ -598,7 +598,7 @@ func (n *artNode) LongestCommonPrefix(other *artNode, depth int) int {
 }
 
 // Returns the minimum number of children for the current node.
-func (n *artNode) MinSize() int {
+func (n *artNode) minSize() int {
 	switch n.kind {
 	case Node4:
 		return node4Min
@@ -613,7 +613,7 @@ func (n *artNode) MinSize() int {
 }
 
 // Returns the maximum number of children for the current node.
-func (n *artNode) MaxSize() int {
+func (n *artNode) maxSize() int {
 	switch n.kind {
 	case Node4:
 		return node4Max
@@ -631,7 +631,7 @@ func (n *artNode) MaxSize() int {
 // The minimum child is determined by recursively traversing down the tree
 // by selecting the smallest possible byte in each child
 // until a leaf has been reached.
-func (n *artNode) Minimum() *artNode {
+func (n *artNode) minimum() *artNode {
 	if n == nil {
 		return nil
 	}
@@ -641,9 +641,9 @@ func (n *artNode) Minimum() *artNode {
 		return n
 
 	case Node4:
-		return n.node4().children[0].Minimum()
+		return n.node4().children[0].minimum()
 	case Node16:
-		return n.node16().children[0].Minimum()
+		return n.node16().children[0].minimum()
 
 	case Node48:
 		i := 0
@@ -654,14 +654,14 @@ func (n *artNode) Minimum() *artNode {
 
 		child := n.node48().children[n.node48().keys[i]-1]
 
-		return child.Minimum()
+		return child.minimum()
 
 	case Node256:
 		i := 0
 		for n.node256().children[i] == nil {
 			i++
 		}
-		return n.node256().children[i].Minimum()
+		return n.node256().children[i].minimum()
 
 	}
 
@@ -672,7 +672,7 @@ func (n *artNode) Minimum() *artNode {
 // The maximum child is determined by recursively traversing down the tree
 // by selecting the biggest possible byte in each child
 // until a leaf has been reached.
-func (n *artNode) Maximum() *artNode {
+func (n *artNode) maximum() *artNode {
 	if n == nil {
 		return nil
 	}
@@ -683,10 +683,10 @@ func (n *artNode) Maximum() *artNode {
 
 	case Node4:
 		node := n.node4()
-		return node.children[node.size-1].Maximum()
+		return node.children[node.size-1].maximum()
 	case Node16:
 		node := n.node16()
-		return node.children[node.size-1].Maximum()
+		return node.children[node.size-1].maximum()
 
 	case Node48:
 		node := n.node48()
@@ -696,7 +696,7 @@ func (n *artNode) Maximum() *artNode {
 		}
 
 		child := node.children[node.keys[i]-1]
-		return child.Maximum()
+		return child.maximum()
 
 	case Node256:
 
@@ -707,7 +707,7 @@ func (n *artNode) Maximum() *artNode {
 			i--
 		}
 
-		return node.children[i].Maximum()
+		return node.children[i].maximum()
 
 	}
 
