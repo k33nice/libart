@@ -1,5 +1,8 @@
 ## Adaptive Radix Tree
 
+[![Build Status](https://drone.k33nice.com/api/badges/k33nice/libart/status.svg)](https://drone.k33nice.com/k33nice/libart)
+[![Documentation](https://godoc.org/github.com/k33nice/libart?status.svg)](https://pkg.go.dev/github.com/k33nice/libart?tab=doc)
+
 The library provides an implementation of Adaptive Radix Tree (ART) based on ["The Adaptive Radix Tree: ARTful Indexing for Main-Memory Databases"](https://db.in.tum.de/~leis/papers/ART.pdf).
 
 #### Overview
